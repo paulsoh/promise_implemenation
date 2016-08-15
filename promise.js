@@ -50,7 +50,18 @@ function doResolve(fn, onFulfilled, onRejected) {
   }
 }
 
-function Promise () {
+/**
+ * Usage of Promise
+ * function readFile(filename) {
+ *   return new Promise(function (resolve, reject) {
+ *     fs.readFile(filename, function (err, res) {
+ *       if (err) reject(error);
+ *       else resolve(res);
+ *     }
+ *   }
+ * }
+ */
+function Promise (fn) {
   var state = PENDING;
   var value = null;
   var handlers = [];
@@ -58,11 +69,38 @@ function Promise () {
   function fulfill(result) {
     state = FULFILLED;
     value = result;
+    handlers.forEach(handle);
+    handlers = null;
   }
 
   function reject(error) {
     state = REJECTED;
     value = error;
+    handlers.forEach(handle);
+    handlers = null;
+  }
+
+  function handle(handler) {
+    if (state === PENDING) {
+      handlers.push(handler);
+    } else {
+      if (state === FULFILLED &&
+        typeof handler.onFulfilled === 'function') {
+        handler.onFulfilled(value);
+    }
+      if (state === REJECTED &&
+        typeof handler.onRejected === 'function') {
+        handler.onRejected(value);
+      }
+  }
+
+  this.done = function (onFulfilled, onRejected) {
+    setTimeout(function () {
+      handle({
+        onFulfilled: onFulfilled,
+        onRejected: onRejected,
+      });
+    }, 0);
   }
 
   // Note how `resolve` accepts either a promise or a plain value and if it's a promise, waits for it to complete. A promise must never be fulfilled with another promise, so it is this `resolve` function that we will expose, rather than the internal `fulfill`. We've used a couple of helper methods, so lets define those: getThen, doResolve
@@ -78,4 +116,6 @@ function Promise () {
       reject(e);
     }
   }
+
+  doResolve(fn, resolve, reject);
 }
