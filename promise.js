@@ -103,6 +103,33 @@ function Promise (fn) {
     }, 0);
   }
 
+  this.then = function (onFulfilled, onRejected) {
+    var self = this;
+    return new Promise(function (resolve, reject) {
+      return self.done(function (result) {
+        if (typeof onFulfilled === 'function') {
+          try {
+            return resolve(onFulfilled(result));
+          } catch (ex) {
+            return reject(ex);
+          }
+        } else {
+          return resolve(result);
+        }
+      }, function (error) {
+        if (typeof onRejected === 'function') {
+          try {
+            return resolve(onRejected(error));
+          } catch (ex) {
+            return reject(ex);
+          }
+        } else {
+          return reject(error);
+        }
+      });
+    });
+  }
+
   // Note how `resolve` accepts either a promise or a plain value and if it's a promise, waits for it to complete. A promise must never be fulfilled with another promise, so it is this `resolve` function that we will expose, rather than the internal `fulfill`. We've used a couple of helper methods, so lets define those: getThen, doResolve
   function resolve(result) {
     try {
